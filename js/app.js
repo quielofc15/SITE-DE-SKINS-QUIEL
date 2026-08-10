@@ -1,17 +1,27 @@
-const zipInput = document.getElementById("zipInput");
+﻿const zipInput = document.getElementById("zipInput");
 const patchBtn = document.getElementById("patchBtn");
 const dropArea = document.getElementById("dropArea");
 const log = document.getElementById("log");
 const progressFill = document.getElementById("progressFill");
 const progressText = document.getElementById("progressText");
+const fileNameLabel = document.getElementById("fileName");
+const fileSizeLabel = document.getElementById("fileSize");
+const fileDetails = document.querySelector(".file-details");
+const preloader = document.getElementById("preloader");
 
 let currentZip = null;
 let currentGroups = [];
 
-function addLog(message, cls = "info") {
+window.addEventListener("load", () => {
+  if (preloader) {
+    setTimeout(() => preloader.classList.add("hidden"), 400);
+  }
+});
+
+function addLog(message, type = "info") {
   const item = document.createElement("div");
-  item.className = `log-item ${cls}`;
-  item.textContent = `➜ ${message}`;
+  item.className = `log-item ${type}`;
+  item.textContent = message;
   log.appendChild(item);
   log.scrollTop = log.scrollHeight;
 }
@@ -25,9 +35,22 @@ function setProgress(percent, text) {
   progressText.textContent = `${percent}% - ${text}`;
 }
 
+function formatBytes(size) {
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 ** 2) return `${(size / 1024).toFixed(2)} KB`;
+  return `${(size / 1024 ** 2).toFixed(2)} MB`;
+}
+
+function setFileInfo(file) {
+  if (!fileDetails) return;
+  fileNameLabel.textContent = file.name;
+  fileSizeLabel.textContent = formatBytes(file.size);
+  fileDetails.classList.remove("ghost");
+}
+
 function handleError(stage, error) {
   const message = error?.message || String(error || "Erro desconhecido");
-  addLog(`[FAIL] ${stage}: ${message}`, "fail");
+  addLog(`[ERRO] ${stage}: ${message}`, "fail");
   console.error(stage, error);
   setProgress(0, `FALHA: ${stage}`);
   patchBtn.disabled = true;
@@ -74,44 +97,55 @@ async function processFiles(files) {
 async function loadZip(file) {
   try {
     clearLog();
+    setFileInfo(file);
     setProgress(0, "ZIP carregado");
-    addLog(`Arquivo selecionado: ${file.name}`, "info");
+    addLog("[SISTEMA] Inicializado", "info");
+    addLog("[UPLOAD] Arquivo recebido", "upload");
 
     if (!file.name.toLowerCase().endsWith(".zip")) {
-      throw new Error("APENAS ARQUIVOS .ZIP S�O SUPORTADOS");
+      throw new Error("APENAS ARQUIVOS .ZIP SÃO SUPORTADOS");
     }
 
     const arrayBuffer = await file.arrayBuffer();
     currentZip = await JSZip.loadAsync(arrayBuffer);
+    addLog("[ANÁLISE] Abrindo ZIP", "analysis");
+    addLog("[ANÁLISE] Procurando arquivos", "analysis");
 
     const fileNames = Object.keys(currentZip.files);
     if (!fileNames.length) {
       throw new Error("ZIP vazio");
     }
 
-    currentGroups = getSlotGroups(fileNames);
-    if (!currentGroups.length) {
-      throw new Error("Nenhum conjunto completo de arquivos encontrado");
+    const groups = getSlotGroups(fileNames);
+    if (!groups.length) {
+      const patterns = [
+        "ProjectData_slot_\d+\.bytes",
+        "ProjectData_slot_\d+\.meta",
+        "UserLevelData_\d+\.bytes",
+      ];
+      throw new Error(`Nenhum conjunto completo encontrado. Padrões esperados: ${patterns.join(", ")}`);
     }
 
-    currentGroups.forEach((group) => {
-      addLog(`[OK] ${group.pbytes}`, "success");
-      addLog(`[OK] ${group.meta}`, "success");
-      addLog(`[OK] ${group.ul}`, "success");
+    groups.forEach((group) => {
+      addLog(`✅ ${group.pbytes} encontrado`, "success");
+      addLog(`✅ ${group.meta} encontrado`, "success");
+      addLog(`✅ ${group.ul} encontrado`, "success");
     });
 
+    currentGroups = groups;
     patchBtn.disabled = false;
     setProgress(20, "Arquivos localizados");
     addLog("[OK] Arquivos encontrados", "success");
   } catch (error) {
-    handleError("Localizar arquivos", error);
+    handleError("Validação ZIP", error);
     throw error;
   }
 }
 
 async function readFiles(groups) {
   try {
-    const loaded = [];
+    const result = [];
+
     for (const group of groups) {
       const pbytesData = await currentZip.file(group.pbytes).async("uint8array");
       const metaData = await currentZip.file(group.meta).async("uint8array");
@@ -121,7 +155,7 @@ async function readFiles(groups) {
       addLog(`[INFO] ${group.meta}: ${metaData.length} bytes`, "info");
       addLog(`[INFO] ${group.ul}: ${ulData.length} bytes`, "info");
 
-      loaded.push({
+      result.push({
         pbytes: { name: group.pbytes, data: pbytesData },
         meta: { name: group.meta, data: metaData },
         ul: { name: group.ul, data: ulData },
@@ -130,7 +164,7 @@ async function readFiles(groups) {
 
     setProgress(40, "Arquivos lidos");
     addLog("[OK] Arquivos lidos", "success");
-    return loaded;
+    return result;
   } catch (error) {
     handleError("Ler arquivos", error);
     throw error;
@@ -140,6 +174,7 @@ async function readFiles(groups) {
 async function createProcessedZip(groupsWithData) {
   try {
     const processed = [];
+
     for (const group of groupsWithData) {
       const files = [group.pbytes, group.meta, group.ul];
       const transformed = await processFiles(files);
@@ -147,7 +182,7 @@ async function createProcessedZip(groupsWithData) {
     }
 
     setProgress(60, "Processamento");
-    addLog("[OK] Processamento conclu�do", "success");
+    addLog("[OK] Processamento concluído", "success");
 
     processed.forEach((file) => {
       currentZip.file(file.name, file.data, { binary: true });
@@ -166,7 +201,7 @@ async function downloadZip() {
     setProgress(80, "Novo ZIP criado");
     addLog("[OK] Novo ZIP criado", "success");
 
-    const fileName = "QUIELZIN15";
+    const fileName = "QUIELZIN15_MAPA_MODIFICADO.zip";
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
     link.download = fileName;
@@ -216,7 +251,7 @@ dropArea.addEventListener("drop", async (event) => {
 patchBtn.addEventListener("click", async () => {
   try {
     if (!currentZip || !currentGroups.length) {
-      throw new Error("Arquivo ZIP n�o carregado ou nenhum grupo v�lido encontrado.");
+      throw new Error("Arquivo ZIP não carregado ou nenhum grupo válido encontrado.");
     }
     const groupsWithData = await readFiles(currentGroups);
     await createProcessedZip(groupsWithData);
