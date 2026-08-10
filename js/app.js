@@ -121,6 +121,21 @@ const markerPatches = markerRules.map((rule, index) => ({
   replace: "88 01 " + encodeSignedVarint64(rule.to)
 }));
 
+function getPatchCategory(patchName) {
+  const categories = {
+    "Conjunto Completo (Set)": { label: "SET", description: "conjunto" },
+    "Cabelo": { label: "HEAD", description: "cabeça" },
+    "Acessório de Cabeça/Máscara": { label: "MASK", description: "máscara" },
+    "Rosto/Maquiagem": { label: "FACE", description: "rosto" },
+    "Peitoral/Camisa": { label: "TOP", description: "parte superior" },
+    "Calça/Bermuda": { label: "BOTTOM", description: "parte inferior" },
+    "Calçado/Tênis": { label: "SHOES", description: "sapatos" },
+    "Skins de Arma (wSkin)": { label: "WEAPON", description: "arma" },
+    "Skin de Mochila (bSkin)": { label: "BACKPACK", description: "mochila" }
+  };
+  return categories[patchName] || null;
+}
+
 function stringToHex(str) {
   return Array.from(str)
     .map((c) => c.charCodeAt(0).toString(16).padStart(2, "0"))
@@ -242,6 +257,10 @@ function patchByMarker(data, patch) {
     if (ok) {
       for (let i = 0; i < replace.length; i++) {
         data[found + i] = replace[i];
+      }
+      const category = getPatchCategory(patch.name);
+      if (category) {
+        addLog(`✅ ${category.label} (${category.description})`, "success");
       }
       if (patch.name.includes("Arma") || patch.name.includes("Mochila")) {
         addLog(`MODIFICADO: ${patch.name}`, "item-equip");
