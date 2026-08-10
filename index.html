@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QUIELZIN15</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="particles"></div>
+  <div class="container">
+    <header>
+      <div class="logo"> INSTA: QUIELZIN15​</div>
+      <h1>🤍​ AMO A LORENA 🤍​</h1>
+      <p>DESENVOLVIDO POR <span>@QUIELZIN15</span></p>
+    </header>
+    <div class="card">
+      <h2>⚠️ CENTRAL DE PROCESSAMENTO</h2>
+      <div class="warning">
+        <p>📦 Envie seu arquivo ZIP</p>
+        <p>O sistema irá analisar os arquivos automaticamente.</p>
+      </div>
+    </div>
+    <div class="card upload-card">
+      <h2>📂 UPLOAD DE ARQUIVO</h2>
+      <label class="drop" id="dropArea" for="zipInput">
+        <input type="file" id="zipInput" accept=".zip" />
+        <div class="drop-content">
+          <span>🚀 Clique para selecionar ou arrastar o ZIP</span>
+          <small>Somente arquivos .zip são suportados.</small>
+        </div>
+      </label>
+      <button id="patchBtn" disabled>⚡ INICIAR PROCESSAMENTO</button>
+    </div>
+    <div id="uidContainer" class="card uid-card"></div>
+    <div class="card console-card">
+      <h2>🖥 CONSOLE DO SISTEMA</h2>
+      <div class="progress">
+        <div class="progress-bar"><div id="progressFill"></div></div>
+        <div id="progressText">0% - Aguardando arquivo...</div>
+      </div>
+      <div id="log" class="log">
+        <span class="log-item info">[SISTEMA] Aguardando arquivo...</span>
+      </div>
+    </div>
+    <footer>👑 @QUIELZIN15 E LORENA</footer>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
